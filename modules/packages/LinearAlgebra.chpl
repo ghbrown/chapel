@@ -1989,7 +1989,7 @@ proc svd(A: [?Adom] ?t) throws
   a given `m x n` matrix ``A`` using its singular-value Decomposition
   ``svd`` and including all large singular values.
 
-  The parameter ``rcond`` is used to set the cutoff for the singular values.
+  The parameter ``rtol`` is used to set the cutoff for the singular values.
 
   ..note ::
     This procedure depends on :mod: `LAPACK` and :mod: `BLAS` module,
@@ -1997,11 +1997,11 @@ proc svd(A: [?Adom] ?t) throws
     are ``off``
 */
 
-proc pinv(in A: [?Adom] ?t, rcond: real = 0.000000000000001) throws
+proc pinv(in A: [?Adom] ?t, rtol: real = 1e-15) throws
   where isLAPACKType(t) && usingLAPACK{
 
   if Adom.rank != 2 then
-    compilerError("Pseudo inverse not possible for non-rectangular matrix");
+    compilerError("Pseudoinverse only possible for rank/order 2 arrays");
 
   const (m, n) = A.shape;
   const k = min(m, n);
@@ -2011,7 +2011,7 @@ proc pinv(in A: [?Adom] ?t, rcond: real = 0.000000000000001) throws
 
   var (u, s, vt) = try! svd(A);
 
-  var cutoff = rcond * BLAS.amax(s);
+  var cutoff = rtol * (max reduce s);
 
   u = transpose(u);
   var ut = u[0..#k, ..];
