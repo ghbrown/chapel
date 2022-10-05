@@ -98,3 +98,14 @@ use TestUtils;
 
     assertAlmostEqual(Acalc, A, "complex: A * pinv(A) * A");
 }
+
+// For arbitrary index offsets
+//{
+//    const D2 : domain(2) = {2..3, 2..3};
+//    var A : [D2] real = [1.0, 0.0;
+//                         0.0, 2.0];
+//    var pinvAExact : [D2] real = [1.0, 0.0;
+//                                  0.0, 0.5];
+//    var pinvA = pinv(A);
+//    assertAlmostEqual(pinvA, pinvAExact, "index offset");
+//}
