@@ -2273,6 +2273,53 @@ proc svd(A: [?Adom] ?t) throws
 }
 
 /*
+  This procedure computes the Moore-Penrose inverse(pseudo inverse) of
+  a given `m x n` matrix ``A`` using its singular-value Decomposition
+  ``svd`` and including all large singular values.
+
+  The parameter ``rtol`` is used to set the cutoff for the singular values.
+
+  ..note ::
+    This procedure depends on :mod: `LAPACK` and :mod: `BLAS` module,
+    and will generate compiler error if ``lapackImpl`` and ``blasImp``
+    are ``off``
+*/
+
+proc pinv(in A: [?Adom] ?t, rtol: real = 1e-15) throws
+  where isLAPACKType(t) && usingLAPACK{
+
+  if Adom.rank != 2 then
+    compilerError("Pseudoinverse only possible for rank/order 2 arrays");
+
+  const (m, n) = A.shape;
+  const k = min(m, n);
+
+  if isComplexType(t) then
+    A = conjg(A);
+
+  var (u, s, vt) = try! svd(A);
+
+  var cutoff = rtol * (max reduce s);
+
+  u = transpose(u);
+  var ut = u[0..#k, ..];
+
+  vt = transpose(vt);
+  var v = vt[.., 0..#k];
+
+  forall i in 0..#k {
+    if(s[i] > cutoff) {
+      ut[i, ..] /= s[i];
+    }
+    else ut[i, ..] = 0;
+  }
+
+  var B = dot(v, ut);
+
+  return B;
+}
+
+/*
   Compute the approximate solution to ``A * x = b`` using the Jacobi method.
   iteration will stop when ``maxiter`` is reached or error is smaller than
   ``tol``, whichever comes first. Return the number of iterations performed.
