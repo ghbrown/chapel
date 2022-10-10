@@ -2287,12 +2287,13 @@ proc svd(A: [?Adom] ?t) throws
 
 proc pinv(in A: [?Adom] ?t, rtol: real = 1e-15) throws
   where isLAPACKType(t) && usingLAPACK{
+    // use detected machine epsilon for rtol once supported (issue #14016)
 
   if Adom.rank != 2 then
     compilerError("Pseudoinverse only possible for rank/order 2 arrays");
 
-  const (m, n) = A.shape;
-  const k = min(m, n);
+  //const (m, n) = A.shape;
+  //const k = min(m, n);
 
   if isComplexType(t) then
     A = conjg(A);
@@ -2301,22 +2302,44 @@ proc pinv(in A: [?Adom] ?t, rtol: real = 1e-15) throws
 
   var cutoff = rtol * (max reduce s);
 
-  u = transpose(u);
-  var ut = u[0..#k, ..];
-
-  vt = transpose(vt);
-  var v = vt[.., 0..#k];
-
-  forall i in 0..#k {
-    if(s[i] > cutoff) {
-      ut[i, ..] /= s[i];
-    }
-    else ut[i, ..] = 0;
+  var sFirst  = s.dom.ranges(0).first;
+  var sStride = s.dom.ranges(0).stride; 
+  var i_s = sFirst;
+  while (s[i_s] > cutoff) {
+    vt[i_s,..] /= s[i_s];
+    i_s += sStride;
   }
+  var sRange = sFirst..<i_s by sStride;
 
-  var B = dot(v, ut);
+  // right now LinearAlgebra.Matrix does not support strides array creation
+  var vReducedDom  = {vt.dim(1),sRange};
+  var utReducedDom = {sRange,u.dim(0)};
+  var vReduced  : [vReducedDom]  t;
+  var utReduced : [utReducedDom] t;
 
-  return B;
+  // transpose does not support strided arrays
+  vReduced = transpose(vt[sRange,..]);
+  utReduced = transpose(u[..,sRange]);
+  var pinvA = dot(vReduced,utReduced);
+  return pinvA;
+
+  // old implementation
+  //u = transpose(u);
+  //var ut = u[0..#k, ..];
+
+  //vt = transpose(vt);
+  //var v = vt[.., 0..#k];
+
+  //forall i in 0..#k {
+  //  if (s[i] > cutoff) {
+  //    ut[i, ..] /= s[i];
+  //  }
+  //  else ut[i, ..] = 0;
+  //}
+
+  //var B = dot(v, ut);
+
+  //return B;
 }
 
 /*

@@ -100,12 +100,15 @@ use TestUtils;
 }
 
 // For arbitrary index offsets
-//{
-//    const D2 : domain(2) = {2..3, 2..3};
-//    var A : [D2] real = [1.0, 0.0;
-//                         0.0, 2.0];
-//    var pinvAExact : [D2] real = [1.0, 0.0;
-//                                  0.0, 0.5];
-//    var pinvA = pinv(A);
-//    assertAlmostEqual(pinvA, pinvAExact, "index offset");
-//}
+{
+    var A = Matrix(2..3,2..3,real);
+    A[2,2] = 1.0;
+    A[3,3] = 2.0;
+    var pinvAExact = Matrix(2..3,2..3,real);
+    pinvAExact[2,2] = 1.0;
+    pinvAExact[3,3] = 0.5;
+    var pinvA = pinv(A);
+    writeln(pinvA); // ghb, remove these writes before merge
+    writeln(pinvA.dom);
+    assertAlmostEqual(pinvA, pinvAExact, "index offset");
+}
